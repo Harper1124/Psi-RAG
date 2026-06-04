@@ -1,0 +1,152 @@
+{
+  "title": "test",
+  "chunks": [
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "# Hierarchical Abstract Tree for Cross-Document Retrieval-Augmented Generation",
+      "page": 0
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "Ziwen Zhao 1 Menglin Yang 1",
+      "page": 0
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "## Abstract",
+      "page": 0
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "Retrieval-augmented generation (RAG) enhances large language models with external knowledge, and tree-based RAG organizes documents into hierarchical indexes to support queries at multiple granularities. However, existing Tree-RAG methods designed for single-document retrieval face critical challenges in scaling to cross-document multi-hop questions: (1) poor distribution adaptability, where k-means clustering introduces noise due to rigid distribution assumptions; (2) structural isolation, as tree indexes lack explicit cross-document connections; and (3) coarse abstraction, which obscures fine-grained details. To address these limitations, we propose Ψ-RAG, a tree-RAG framework with two key components. First, a hierarchical abstract tree index built through an iterative “merging and collapse” process that adapts to data distributions without a priori assumption. Second, a multi-granular retrieval agent that intelligently interacts with the knowledge base with reorganized queries and an agent-powered hybrid retriever. Ψ-RAG supports diverse tasks from token-level question answering to document-level summarization. On crossdocument multi-hop QA benchmarks, it outperforms RAPTOR by 25.9% and HippoRAG 2 by 7.4% in average F1 score 1 .",
+      "page": 0
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "## 1. Introduction",
+      "page": 0
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "Retrieval-augmented generation (RAG) (Lewis et al., 2020) enhances large language models (LLMs) with reliable references from external knowledge bases. To effectively address multi-granular user queries from token-level factual question answering (QA) to document-level summarization, RAG frameworks must leverage the semantic hierarchy within corpora (Sarthi et al., 2024; Chen et al., 2024). Traditional retrieval systems (Robertson et al., 2009; Karpukhin et al., 2020) slice documents into short, independent chunks; this fixed retrieval granularity leads to incomplete and inaccurate responses for higher-level questions (Nair et al., 2023; Liu et al., 2021; Sarthi et al., 2024; Wang et al., 2025).",
+      "page": 0
+    },
+    {
+      "type": "image",
+      "modality": "image",
+      "caption": "",
+      "ocr": "",
+      "text": "",
+      "image_path": "/data/yzy/psiRAG/Psi-RAG/.psirag_pdf_cache/test_assets/84d8771e41fe1bd09f6d56283cba305cfc9c9defd887f35276a7cfbfa2259fee.jpg",
+      "page": 0,
+      "bbox": [
+        503,
+        232,
+        882,
+        386
+      ]
+    },
+    {
+      "type": "chart",
+      "modality": "image",
+      "caption": "",
+      "ocr": "",
+      "text": "",
+      "image_path": "/data/yzy/psiRAG/Psi-RAG/.psirag_pdf_cache/test_assets/c9b060fad711bb1e92906a9c460ab1b7943c457d7c89f671bf95e3ccd05538a9.jpg",
+      "page": 0,
+      "bbox": [
+        501,
+        390,
+        700,
+        529
+      ]
+    },
+    {
+      "type": "chart",
+      "modality": "image",
+      "caption": "Figure 1. (a) Two RAG application scenarios: single-document and cross-document retrieval. (b) Multi-hop QA performance w.r.t. the number of documents in the tree index. (c) Ψ-RAG has both efficient indexing and accurate multi-hop retrieval compared to structured RAG baselines, using 2Wiki as an example.",
+      "ocr": "",
+      "text": "Figure 1. (a) Two RAG application scenarios: single-document and cross-document retrieval. (b) Multi-hop QA performance w.r.t. the number of documents in the tree index. (c) Ψ-RAG has both efficient indexing and accurate multi-hop retrieval compared to structured RAG baselines, using 2Wiki as an example.",
+      "image_path": "/data/yzy/psiRAG/Psi-RAG/.psirag_pdf_cache/test_assets/b2f7b1fbe9dd0d0265ca17a5656690f1a4bd0d12c7371eeec95e166bc0c3ad3e.jpg",
+      "page": 0,
+      "bbox": [
+        705,
+        390,
+        879,
+        530
+      ]
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "Structured RAG achieves multi-granularity by organizing documents relationally with knowledge graph indexes (Edge et al., 2024; Jimenez Guti ´ errez et al. ´ , 2024; 2025) or hierarchically with tree indexes (Liu et al., 2021; Jin et al., 2025b; Sarthi et al., 2024). Its utility is demonstrated in two key scenarios, as in Figure 1(a): (1) single-document retrieval, to process user requests in diverse granularity within a single user-uploaded document (Jin et al., 2025a; Li et al., 2025b; Zhang et al., 2025a); (2) cross-document retrieval, to process user requests by building a large index from an entire (domain-specific) corpus and retrieving across multiple documents, challenging the multi-hop retrieval and reasoning capabilities of RAG frameworks (Trivedi et al., 2023; Tang & Yang, 2024).",
+      "page": 0
+    },
+    {
+      "type": "table",
+      "modality": "text",
+      "text": "Table 1. Comparison of RAG frameworks. “ ? ” indicates limited support by specific methods.\nTask type Single- document Cross- document Token- level Passage- level Document- level Traditional RAG >>>> x>x√ √ ?>>> x?>> Graph-RAG 【 Tree-RAG ？ 亚-RAG (Ours) √",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "Our work focuses on Tree-RAG (Liu et al., 2021; Jin et al., 2025b; Sarthi et al., 2024; Tao et al., 2025; Rezazadeh et al., 2025), which organizes documents into a tree-structured index. It explicitly defines different information granularities, enabling superior retrieval performance, especially for summative tasks (Sarthi et al., 2024; Xiao et al., 2025). See Appendix F for more related works. However, existing Tree-RAG methods mainly target single-hop retrieval on a single long document, while cross-document and multihop retrieval remain underexplored. For example, representative k-means-type cluster trees like RAPTOR (Sarthi et al., 2024) achieve high retrieval performance only with small-scale, passage-level indexes. As shown in Figure 1(b), RAPTOR’s retrieval accuracy drops significantly when the search space expands to corpus-level with millions of tokens. We identify three key limitations: (1) Poor distribution adaptability: k-means-type clustering implicitly relies on spherical data distributions (Sarthi et al., 2024), which introduces noisy documents to the retriever for corpora with a skewed distribution. (2) Structural isolation: unlike Graph-RAG which dynamically hops between documents based on pairwise relationships, leaf nodes in a tree index lack explicit connections. This prevents the retriever from capturing implicit causal dependencies in multi-hop questions. (3) Coarse abstraction: the coarse-grained abstracts act like a mosaic, obscuring token-level details at the very beginning of retrieval, as dense vector matching struggles to precisely associate a specific entity in the user query with abstract concepts on top of the tree.",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "This work aims to address the limitations of Tree-RAG on cross-document and multi-hop retrieval. We present Ψ-RAG, a versatile and effective Tree-RAG framework, comprising a hierarchical abstract tree index and a multigranular agentic retriever. (1) To address poor distribution adaptability, we build an abstract tree index via a hierarchical clustering-inspired “merging and collapse” process, which iteratively links similar chunks to existing or newly generated upper-level nodes in the tree. (2) To tackle structural isolation, a retrieval and answering agent reasons through the user query, during which it calls for additional document retrieval with a reorganized query when needed. This empowers the tree retriever with better causal understanding of user query. (3) To resolve the conflict between coarse abstraction and detailed factual retrieval, a multigranular hybrid retrieval framework is employed, where an agent-powered sparse retriever supplements the hierarchical tree retrieval with fine-grained information, yielding significant performance gains. Our proposed framework possesses numerous advantages:",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "• Ψ-RAG generalizes Tree-RAG from passage-level to corpus-level indexing. As shown in Figure 1(c), Ψ-RAG builds a corpus-level tree 10× faster than OpenIE-based Graph-RAG. Under this setting, Ψ-RAG achieves average gains of 23.7% in retrieval and 25.9% in generation over RAPTOR on token-level QA.",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "• Ψ-RAG extends Tree-RAG to complex multi-hop scenarios. To our knowledge, Ψ-RAG is the first Tree-RAG for cross-document multi-hop scenarios comparable to Graph-RAG, exhibiting great application potential. As in Figure 1(c), Ψ-RAG is both efficient and powerful, outperforming cutting-edge Graph-RAG frameworks like HippoRAG 2 (Jimenez Guti ´ errez et al. ´ , 2025).",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "• As in Table 1, Ψ-RAG is an all-in-one Tree-RAG framework supporting tasks across various granularities: token-level factual QA, passage-level causal reasoning, and document-level summarization.",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "• Ψ-RAG is built entirely with open-source LLMs. Its components are flexibly replaceable. Ψ-RAG can be applied to custom corpora without any training or finetuning, demonstrating strong generalizability.",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "## 2. Preliminary",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "Retrieval-Augmented Generation. Given a user query q, an LLM f(q; I) generates a corresponding response a, where I is the system instruction for a specific task. For a reasoning model, $a = R \\cup y ,$ , where R is the Chain-of-Thought (Wei et al., 2022) reasoning text and y is the final answer. An LLM equipped with RAG can be defined as $f \\cdot r ,$ where the retriever $r ( q ; \\mathcal { T } )$ maps q to top-k relevant document chunks $\\mathcal { D } ^ { * } ~ = ~ \\{ u _ { i } \\} _ { i = 1 } ^ { k } ~ \\subset ~ \\mathcal { D }$ using a scoring function $s ( q , u )$ . The external corpus D contains $n = | \\mathcal { D } |$ chunks in total. The index $\\mathcal { T } : \\mathcal { D } \\mathcal { T }$ maps each chunk in D to a discrete index space T for better retrieval.",
+      "page": 1
+    },
+    {
+      "type": "text",
+      "modality": "text",
+      "text": "Tree Index. We overload the symbol T to denote a tree. Formally, a tree $\\boldsymbol { \\mathcal { T } } = ( \\boldsymbol { \\nu } , \\boldsymbol { \\mathcal { E } } )$ is a connected acyclic graph with a finite node set $\\dot { \\mathcal { V } } = \\{ v _ { i } \\} _ { i = 1 } ^ { | \\mathcal { V } | }$ and an edge set $\\varepsilon \\subset$ $\\nu \\times \\nu$ . The root node for a node u is denoted as $r o o t ( u )$ The set of children of u is $c ( u ) = \\{ v | u v \\in \\mathcal { E } \\}$ . Let $\\ell ( u )$ be the set of all leaf nodes reachable from u. The depth of a node $\\delta ( \\cdot )$ is defined as the length of the path to the root,",
+      "page": 1
+    }
+  ]
+}
