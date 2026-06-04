@@ -48,19 +48,21 @@ def format_history(history, query):
     return "\n".join(lines)
 
 
-def format_retrieved_image_lines(layer_information):
+def format_retrieved_multimodal_lines(layer_information):
     lines = []
     for node in layer_information:
         metadata = node.get("metadata") or {}
         modality = str(metadata.get("modality") or metadata.get("type") or "").lower()
-        if modality not in ("image", "chart", "figure"):
+        if modality not in ("image", "chart", "figure", "table"):
             continue
-        caption = metadata.get("caption") or ""
+        caption = metadata.get("caption") or metadata.get("table_caption") or ""
         ocr = metadata.get("ocr") or ""
+        table_body = metadata.get("table_body") or ""
         source = metadata.get("source") or metadata.get("title") or ""
         page = metadata.get("page", metadata.get("page_idx", ""))
         image = metadata.get("image_path") or metadata.get("image") or ""
         parts = [
+            f"type={modality}",
             f"node={node.get('node_index')}",
             f"score={node.get('score'):.4f}" if isinstance(node.get("score"), (int, float)) else "",
             f"source={source}" if source else "",
@@ -68,8 +70,9 @@ def format_retrieved_image_lines(layer_information):
             f"image={image}" if image else "",
             f"caption={caption}" if caption else "",
             f"OCR={ocr}" if ocr else "",
+            f"body={table_body}" if table_body else "",
         ]
-        lines.append("image: " + "; ".join(part for part in parts if part))
+        lines.append("multimodal: " + "; ".join(part for part in parts if part))
     return lines
 
 
@@ -474,7 +477,7 @@ def main():
                     f"sub-questions: {subquestions_text}",
                     f"thoughts: {thoughts_text}",
                     f"answer: {answer}",
-                    *format_retrieved_image_lines(
+                    *format_retrieved_multimodal_lines(
                         node
                         for layer_info in state_log["retrieved_nodes"]
                         for node in layer_info
@@ -565,7 +568,7 @@ def main():
                     *max_retrieval_time_verbose_lines,
                     f"thoughts: {thought}",
                     f"answer: {answer}",
-                    *format_retrieved_image_lines(layer_information),
+                    *format_retrieved_multimodal_lines(layer_information),
                     f"gold answer: {data.gold_answers[query_id] if query_id is not None and data.gold_answers is not None else 'NA'}",
                     "\n",
                 ]

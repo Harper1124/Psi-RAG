@@ -20,7 +20,10 @@ logging.basicConfig(format="%(asctime)s - %(message)s",
                     )
 
 
-MULTIMODAL_CHUNK_KEYS = ("type", "modality", "text", "caption", "ocr", "image", "image_path")
+MULTIMODAL_CHUNK_KEYS = (
+    "type", "modality", "text", "caption", "ocr", "image", "image_path",
+    "table_caption", "table_body", "html",
+)
 
 
 def is_chunk_dict(value: Any) -> bool:
@@ -53,6 +56,16 @@ def chunk_to_text(chunk: Any, include_metadata: bool = False) -> str:
     caption = _first_nonempty(chunk.get("caption"), chunk.get("image_caption"), chunk.get("chart_caption"))
     ocr = _first_nonempty(chunk.get("ocr"), chunk.get("text"))
     body = _first_nonempty(chunk.get("text"), chunk.get("content"), caption, ocr)
+
+    if modality == "table" or chunk.get("type") == "table":
+        table_caption = _first_nonempty(chunk.get("table_caption"), caption)
+        table_body = _first_nonempty(chunk.get("table_body"), chunk.get("text"), chunk.get("html"))
+        parts = []
+        if table_caption:
+            parts.append(f"Table caption: {table_caption}")
+        if table_body:
+            parts.append(f"Table body: {table_body}")
+        body = "\n".join(parts) if parts else body
 
     if modality in ("image", "chart", "figure"):
         parts = []
@@ -88,7 +101,7 @@ def chunk_metadata(chunk: Any) -> Dict[str, Any]:
         return {}
     keys = (
         "type", "modality", "source", "title", "page", "page_idx", "image_path",
-        "image", "caption", "ocr", "bbox",
+        "image", "caption", "ocr", "table_caption", "table_body", "html", "bbox",
     )
     return {key: chunk[key] for key in keys if key in chunk and chunk[key] not in (None, "")}
 

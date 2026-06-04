@@ -336,15 +336,48 @@ def _collect_item_chunk(
         return _text_chunk(content_item, "\n".join(part for part in parts if part), item_type)
 
     if item_type == "table":
-        parts = []
-        for field in ("table_caption", "table_body", "table_footnote", "html"):
+        caption_parts = []
+        for field in ("table_caption",):
             value = content_item.get(field, "")
             if isinstance(value, list):
                 value = " ".join(value)
             value = _normalize_text(value)
             if value:
-                parts.append(value)
-        return _text_chunk(content_item, "\n".join(parts), item_type)
+                caption_parts.append(value)
+
+        body_parts = []
+        for field in ("table_body", "table_footnote", "html"):
+            value = content_item.get(field, "")
+            if isinstance(value, list):
+                value = " ".join(value)
+            value = _normalize_text(value)
+            if value:
+                body_parts.append(value)
+
+        image_path = ""
+        for field in ("table_img_path", "table_image_path", "image_path", "img_path", "path", "image"):
+            image_path = _resolve_media_path(output_root, content_item.get(field))
+            if image_path:
+                break
+        if image_path and image_output_dir is not None:
+            image_path = _copy_media_to_cache(image_path, image_output_dir)
+
+        table_caption = "\n".join(caption_parts)
+        table_body = "\n".join(body_parts)
+        text = "\n".join(part for part in (table_caption, table_body) if part)
+        if not any((text, image_path)):
+            return None
+        return {
+            "type": "table",
+            "modality": "table",
+            "text": text,
+            "table_caption": table_caption,
+            "table_body": table_body,
+            "html": _normalize_text(content_item.get("html", "")),
+            "image_path": image_path,
+            "page": _extract_page(content_item),
+            "bbox": content_item.get("bbox"),
+        }
 
     if item_type in ("image", "chart"):
         caption_parts = []
