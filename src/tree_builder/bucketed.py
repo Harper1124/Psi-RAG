@@ -411,15 +411,16 @@ class BucketedAbstractTreeBuilder(AbstractTreeBuilder):
         passage_level_nodes = {}
         if use_multithreading:
             passage_batch_size = 10
+            passage_keys = list(passage_to_node_indices.keys())
             bar = tqdm(
-                range(0, max(list(passage_to_node_indices.keys())) + 1, passage_batch_size),
+                range(0, len(passage_keys), passage_batch_size),
                 desc="summarizing passage nodes",
             )
             for i in bar:
                 with ThreadPoolExecutor() as executor:
                     future_passage_nodes = [
                         executor.submit(construct_passage_node, passage)
-                        for passage in list(passage_to_node_indices.keys())[i: i + passage_batch_size]
+                        for passage in passage_keys[i: i + passage_batch_size]
                     ]
                     for future in as_completed(future_passage_nodes):
                         passage_level_nodes[future.result()[0]] = future.result()[1]
