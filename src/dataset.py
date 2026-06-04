@@ -5,7 +5,7 @@ from typing import Any, Dict, List, Set
 from tqdm import tqdm
 
 from .pdf import load_local_pdf_data
-from .utils import split_text
+from .utils import chunk_to_text, is_chunk_dict, split_text
 
 dataset_pool = (
     "nq",
@@ -248,10 +248,16 @@ class DataManager:
                 doc_dict[doc_id] = sample_text['context']
             elif self.local_pdf:
                 self.all_text_ids.append(sample_text["title"])
-                self.all_passages.append([
-                    sample_text["title"] + "\n" + chunk
-                    for chunk in sample_text["chunks"]
-                ])
+                chunks = []
+                for chunk in sample_text["chunks"]:
+                    if is_chunk_dict(chunk):
+                        enriched_chunk = chunk.copy()
+                        enriched_chunk.setdefault("source", sample_text["title"])
+                        if chunk_to_text(enriched_chunk):
+                            chunks.append(enriched_chunk)
+                    else:
+                        chunks.append(sample_text["title"] + "\n" + str(chunk))
+                self.all_passages.append(chunks)
                 
             doc_idx += 1
 
@@ -290,12 +296,31 @@ class DataManager:
         
     def split_text(self, **kwargs):
         """Split text into chunks according to dataset format."""
+        def split_chunk(chunk):
+            if is_chunk_dict(chunk):
+                modality = str(chunk.get("modality") or chunk.get("type") or "text").lower()
+                if modality in ("image", "chart", "figure"):
+                    return [chunk]
+                split_chunks = []
+                for text in split_text(chunk_to_text(chunk), **kwargs):
+                    next_chunk = chunk.copy()
+                    next_chunk["text"] = text
+                    split_chunks.append(next_chunk)
+                return split_chunks
+            return split_text(str(chunk), **kwargs)
+
         if isinstance(self.all_passages, str):
             self.all_passages = split_text(self.all_passages, **kwargs) # List[str]
         elif isinstance(self.all_passages, List) and isinstance(self.all_passages[0], str): 
             self.all_passages = [split_text(t, **kwargs) for t in self.all_passages] # List[List[str]]
         elif isinstance(self.all_passages[0], List):
-            self.all_passages = [split_text("\n".join(psg), **kwargs) for psg in self.all_passages] # List[List[str]]
+            split_passages = []
+            for passage in self.all_passages:
+                chunks = []
+                for chunk in passage:
+                    chunks.extend(split_chunk(chunk))
+                split_passages.append(chunks)
+            self.all_passages = split_passages # List[List[str | Dict]]
 
     def get_documents(self) -> List[str]:
         """Get a flattened document list (for sparse retrieval)."""
@@ -305,7 +330,7 @@ class DataManager:
                 docs.extend(passage)
         else:
             docs = self.all_passages
-        return docs
+        return [chunk_to_text(doc, include_metadata=True) for doc in docs]
     
     def __len__(self) -> int:
         return len(self.data) if self.data is not None else 0

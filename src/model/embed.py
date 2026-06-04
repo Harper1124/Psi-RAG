@@ -2,7 +2,7 @@ import os
 import logging
 
 from abc import ABC, abstractmethod
-from typing import List
+from typing import Any, Dict, List
 from tqdm import tqdm
 
 import torch
@@ -150,6 +150,114 @@ class VLLMEmbeddingModel(BaseEmbeddingModel):
         if isinstance(text, str):
             return embs[0]
         return np.asarray(embs)
+
+
+class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
+    def __init__(self, model_name="Qwen/Qwen3-VL-Embedding", cache_dir=None, **kwargs):
+        self.model_name = model_name
+        self.cache_dir = cache_dir
+        self.model = None
+        self.processor = None
+        self.embedder = None
+        self.model_kwargs = kwargs
+        self.batch_size = self.model_kwargs.pop("batch_size", 4)
+        self.normalize = self.model_kwargs.pop("normalize", True)
+
+    def load_model(self):
+        if self.embedder is not None or self.model is not None:
+            return
+
+        try:
+            from qwen3_vl_embedding import Qwen3VLEmbedder
+            self.embedder = Qwen3VLEmbedder(
+                model_name=self.model_name,
+                cache_dir=self.cache_dir,
+                **self.model_kwargs,
+            )
+            return
+        except ImportError:
+            pass
+
+        try:
+            from transformers import AutoProcessor, AutoModel
+        except ImportError as e:
+            raise ImportError(
+                "Qwen3-VL-Embedding requires either the official qwen3_vl_embedding package "
+                "or a transformers version that can load the model."
+            ) from e
+
+        model_kwargs = self.model_kwargs.copy()
+        model_kwargs.setdefault("trust_remote_code", True)
+        model_kwargs.setdefault("device_map", "auto")
+        model_kwargs.setdefault("torch_dtype", "auto")
+        self.processor = AutoProcessor.from_pretrained(
+            self.model_name,
+            cache_dir=self.cache_dir,
+            trust_remote_code=True,
+        )
+        self.model = AutoModel.from_pretrained(
+            self.model_name,
+            cache_dir=self.cache_dir,
+            **model_kwargs,
+        )
+
+    def _normalize_input(self, item: str | Dict[str, Any]) -> Dict[str, Any]:
+        if isinstance(item, dict):
+            text = item.get("text") or item.get("caption") or item.get("ocr") or ""
+            image = item.get("image") or item.get("image_path") or item.get("path")
+            return {"text": text, "image": image}
+        return {"text": "" if item is None else str(item), "image": None}
+
+    def _embed_with_official_embedder(self, items: List[Dict[str, Any]]) -> np.ndarray:
+        if hasattr(self.embedder, "encode"):
+            return np.asarray(self.embedder.encode(items, batch_size=self.batch_size, normalize=self.normalize))
+        if hasattr(self.embedder, "embed"):
+            return np.asarray(self.embedder.embed(items, batch_size=self.batch_size, normalize=self.normalize))
+        raise AttributeError("Qwen3VLEmbedder must expose encode() or embed().")
+
+    def _embed_with_transformers(self, items: List[Dict[str, Any]]) -> np.ndarray:
+        try:
+            from PIL import Image
+        except ImportError as e:
+            raise ImportError("Pillow is required for Qwen3-VL image embedding.") from e
+
+        embs = []
+        for item in items:
+            processor_kwargs = {
+                "text": [item["text"]],
+                "padding": True,
+                "return_tensors": "pt",
+            }
+            image_path = item.get("image")
+            if image_path:
+                processor_kwargs["images"] = [Image.open(image_path).convert("RGB")]
+            inputs = self.processor(**processor_kwargs)
+            if hasattr(self.model, "device"):
+                inputs = {k: v.to(self.model.device) for k, v in inputs.items() if hasattr(v, "to")}
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+                if hasattr(outputs, "embeddings"):
+                    batch_embs = outputs.embeddings
+                elif hasattr(outputs, "pooler_output") and outputs.pooler_output is not None:
+                    batch_embs = outputs.pooler_output
+                else:
+                    batch_embs = outputs.last_hidden_state[:, 0]
+                if self.normalize:
+                    batch_embs = normalize(batch_embs, p=2, dim=1)
+                embs.append(batch_embs.detach().cpu().numpy())
+        return np.concatenate(embs, axis=0)
+
+    def embed(self, text):
+        self.load_model()
+        is_single = not isinstance(text, list)
+        items = [self._normalize_input(text)] if is_single else [self._normalize_input(item) for item in text]
+
+        if self.embedder is not None:
+            embs = self._embed_with_official_embedder(items)
+        else:
+            embs = self._embed_with_transformers(items)
+
+        return embs[0] if is_single else embs
 
 
 class TransformersEmbeddingModel(BaseEmbeddingModel):

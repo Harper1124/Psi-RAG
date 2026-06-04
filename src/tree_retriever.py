@@ -9,8 +9,8 @@ import tiktoken
 import bm25s
 import Stemmer
 import numpy as np
-from .utils import (Node, Tree, distances_from_embeddings, get_embeddings, get_text_list,
-                    reverse_mapping, rrf)
+from .utils import (Node, Tree, chunk_to_text, distances_from_embeddings, get_embeddings,
+                    get_text_list, reverse_mapping, rrf)
 
 logging.basicConfig(format="%(asctime)s - %(message)s", 
                     level=logging.INFO,
@@ -187,6 +187,7 @@ class TreeRetriever:
             retrieved_docs.update(hybrid_docs)
             final_node_indices = [retrieved_docs[passage] for passage in context]
             final_nodes = [self.tree.all_nodes[idx] for idx in final_node_indices]
+            context = get_text_list(final_nodes)
         rerank_time = time.time() - rerank_start_time
         
         def _add_info(context, final_nodes):
@@ -214,6 +215,7 @@ class TreeRetriever:
                     "chunk_index": node.chunk_index,
                     "layer_number": self.tree_node_index_to_layer[node.index],
                     "score": scores[i],
+                    "metadata": getattr(node, "metadata", {}),
                 }
             )
 
@@ -232,10 +234,12 @@ class TreeRetriever:
             )
             if self.conf["force_sparse_index_from_scratch"] and os.path.exists(hybrid_save_dir):
                 shutil.rmtree(hybrid_save_dir)
+            docs = [chunk_to_text(doc, include_metadata=True) for doc in docs]
             corpus_tokens = bm25s.tokenize(docs, stopwords="en", stemmer=self.stemmer, show_progress=False)
             self.hybrid_search_model.index(corpus_tokens)
             self.hybrid_search_model.save(hybrid_save_dir)
         else:
+            docs = [chunk_to_text(doc, include_metadata=True) for doc in docs]
             corpus_tokens = bm25s.tokenize(docs, stopwords="en", stemmer=self.stemmer, show_progress=False)
             self.hybrid_search_model.index(corpus_tokens)
 

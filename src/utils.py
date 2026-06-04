@@ -7,7 +7,7 @@ import string
 import numpy as np
 import tiktoken
 
-from typing import Dict, Tuple, List, Set
+from typing import Any, Dict, Tuple, List, Set
 from pathlib import Path
 from scipy import spatial
 from tqdm import tqdm
@@ -20,18 +20,130 @@ logging.basicConfig(format="%(asctime)s - %(message)s",
                     )
 
 
+MULTIMODAL_CHUNK_KEYS = ("type", "modality", "text", "caption", "ocr", "image", "image_path")
+
+
+def is_chunk_dict(value: Any) -> bool:
+    return isinstance(value, dict) and any(key in value for key in MULTIMODAL_CHUNK_KEYS)
+
+
+def chunk_modality(chunk: Any) -> str:
+    if not is_chunk_dict(chunk):
+        return "text"
+    return str(chunk.get("modality") or chunk.get("type") or "text").lower()
+
+
+def _first_nonempty(*values: Any) -> str:
+    for value in values:
+        if value is None:
+            continue
+        if isinstance(value, list):
+            value = " ".join(str(item) for item in value if item)
+        value = str(value).strip()
+        if value:
+            return value
+    return ""
+
+
+def chunk_to_text(chunk: Any, include_metadata: bool = False) -> str:
+    if not is_chunk_dict(chunk):
+        return "" if chunk is None else str(chunk)
+
+    modality = chunk_modality(chunk)
+    caption = _first_nonempty(chunk.get("caption"), chunk.get("image_caption"), chunk.get("chart_caption"))
+    ocr = _first_nonempty(chunk.get("ocr"), chunk.get("text"))
+    body = _first_nonempty(chunk.get("text"), chunk.get("content"), caption, ocr)
+
+    if modality in ("image", "chart", "figure"):
+        parts = []
+        if caption:
+            parts.append(f"Caption: {caption}")
+        if ocr and ocr != caption:
+            parts.append(f"OCR: {ocr}")
+        body = "\n".join(parts) if parts else body
+
+    if include_metadata:
+        metadata = format_chunk_metadata(chunk)
+        if metadata:
+            body = f"{metadata}\n{body}" if body else metadata
+    return body
+
+
+def chunk_to_embedding_input(chunk: Any) -> str | Dict[str, Any]:
+    if not is_chunk_dict(chunk):
+        return "" if chunk is None else str(chunk)
+
+    text = chunk_to_text(chunk, include_metadata=False)
+    image = _first_nonempty(chunk.get("image"), chunk.get("image_path"), chunk.get("path"))
+    if image:
+        payload = {"image": image}
+        if text:
+            payload["text"] = text
+        return payload
+    return text
+
+
+def chunk_metadata(chunk: Any) -> Dict[str, Any]:
+    if not is_chunk_dict(chunk):
+        return {}
+    keys = (
+        "type", "modality", "source", "title", "page", "page_idx", "image_path",
+        "image", "caption", "ocr", "bbox",
+    )
+    return {key: chunk[key] for key in keys if key in chunk and chunk[key] not in (None, "")}
+
+
+def format_chunk_metadata(chunk: Any) -> str:
+    metadata = chunk_metadata(chunk)
+    if not metadata:
+        return ""
+
+    modality = metadata.get("modality") or metadata.get("type")
+    source = metadata.get("source") or metadata.get("title")
+    page = metadata.get("page", metadata.get("page_idx"))
+    image_path = metadata.get("image_path") or metadata.get("image")
+    fields = []
+    if modality:
+        fields.append(f"type={modality}")
+    if source:
+        fields.append(f"source={source}")
+    if page not in (None, ""):
+        fields.append(f"page={page}")
+    if image_path:
+        fields.append(f"image={image_path}")
+    return "[" + "; ".join(fields) + "]" if fields else ""
+
+
+def format_node_for_context(node: "Node") -> str:
+    if is_chunk_dict(node.raw):
+        return chunk_to_text(node.raw, include_metadata=True)
+    return node.text
+
+
 class Node:
     """
     Represents a node in the hierarchical tree structure.
     """
 
-    def __init__(self, text: str, index: int, document_index: int, chunk_index: int, children: Set[int], embeddings: np.ndarray) -> None:
-        self.text: str = text
+    def __init__(
+        self,
+        text: str,
+        index: int,
+        document_index: int,
+        chunk_index: int,
+        children: Set[int],
+        embeddings: np.ndarray,
+        metadata: Dict[str, Any] | None = None,
+        raw: Any = None,
+    ) -> None:
+        self.text: str = "" if text is None else str(text)
         self.index: int = index
         self.document_index: int = document_index
         self.chunk_index: int = chunk_index
         self.children: Set[int] = children
         self.embeddings: np.ndarray = embeddings
+        self.metadata: Dict[str, Any] = metadata or {}
+        self.raw: Any = raw
 
 
 class Tree:
@@ -234,7 +346,7 @@ def get_text(node_list: List[Node]) -> str:
     """
     text = ""
     for node in node_list:
-        text += f"{' '.join(node.text.splitlines())}"
+        text += f"{' '.join(format_node_for_context(node).splitlines())}"
         text += "\n\n"
     return text
 
@@ -251,7 +363,7 @@ def get_text_list(node_list: List[Node]) -> List[str]:
     """
     text_list = []
     for node in node_list:
-        text_list.append(node.text)
+        text_list.append(format_node_for_context(node))
     return text_list
 
 
@@ -263,6 +375,7 @@ def get_token_length(text: str | List[str]) -> Dict:
     tokens = []
 
     for t in text:
+        t = chunk_to_text(t)
         tokenizer = tiktoken.get_encoding("cl100k_base")
         # Split the text into sentences using multiple delimiters
         delimiters = [".", "!", "?", "\n"]

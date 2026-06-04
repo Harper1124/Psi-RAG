@@ -238,18 +238,80 @@ def _flatten_text_list(value) -> List[str]:
     return []
 
 
-def _collect_item_text(content_item: dict) -> str:
+def _resolve_media_path(output_root: Path, raw_path) -> str:
+    if raw_path is None:
+        return ""
+    if isinstance(raw_path, list):
+        raw_path = raw_path[0] if raw_path else ""
+    raw_path = str(raw_path).strip()
+    if not raw_path:
+        return ""
+    path = Path(raw_path)
+    if path.is_absolute():
+        return str(path)
+    candidates = [
+        output_root / raw_path,
+        output_root / raw_path.lstrip("./"),
+        output_root / path.name,
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    matches = sorted(output_root.rglob(path.name))
+    return str(matches[0]) if matches else raw_path
+
+
+def _copy_media_to_cache(image_path: str, image_output_dir: Path) -> str:
+    if not image_path:
+        return ""
+    source = Path(image_path)
+    if not source.exists():
+        return image_path
+    image_output_dir.mkdir(parents=True, exist_ok=True)
+    target = image_output_dir / source.name
+    suffix_index = 1
+    while target.exists() and source.resolve() != target.resolve():
+        target = image_output_dir / f"{source.stem}_{suffix_index}{source.suffix}"
+        suffix_index += 1
+    if not target.exists():
+        shutil.copy2(source, target)
+    return str(target)
+
+
+def _extract_page(content_item: dict):
+    for key in ("page", "page_idx", "page_no", "page_number"):
+        if key in content_item:
+            return content_item[key]
+    return None
+
+
+def _text_chunk(content_item: dict, text: str, item_type: str | None = None) -> dict | None:
+    if not text:
+        return None
+    return {
+        "type": item_type or content_item.get("type") or "text",
+        "modality": "text",
+        "text": text,
+        "page": _extract_page(content_item),
+    }
+
+
+def _collect_item_chunk(
+    content_item: dict,
+    output_root: Path,
+    image_output_dir: Path | None = None,
+) -> dict | None:
     item_type = content_item.get("type")
 
     if item_type in ("header", "footer", "page_number", "aside_text", "page_footnote", "seal"):
-        return ""
+        return None
 
     if item_type == "text":
         text = _normalize_text(content_item.get("text", ""))
         text_level = content_item.get("text_level", 0)
         if text and isinstance(text_level, int) and text_level > 0:
-            return f'{"#" * text_level} {text}'
-        return text
+            text = f'{"#" * text_level} {text}'
+        return _text_chunk(content_item, text, item_type)
 
     if item_type in ("list", "equation"):
         parts = [_normalize_text(content_item.get("text", ""))]
@@ -263,7 +325,7 @@ def _collect_item_text(content_item: dict) -> str:
                 _normalize_text(content_item.get(field, ""))
                 for field in ("latex", "html")
             )
-        return "\n".join(part for part in parts if part)
+        return _text_chunk(content_item, "\n".join(part for part in parts if part), item_type)
 
     if item_type == "code":
         parts = [
@@ -271,7 +333,7 @@ def _collect_item_text(content_item: dict) -> str:
             _normalize_text(content_item.get("code_body", "")),
             _normalize_text(content_item.get("code_footnote", "")),
         ]
-        return "\n".join(part for part in parts if part)
+        return _text_chunk(content_item, "\n".join(part for part in parts if part), item_type)
 
     if item_type == "table":
         parts = []
@@ -282,18 +344,50 @@ def _collect_item_text(content_item: dict) -> str:
             value = _normalize_text(value)
             if value:
                 parts.append(value)
-        return "\n".join(parts)
+        return _text_chunk(content_item, "\n".join(parts), item_type)
 
     if item_type in ("image", "chart"):
-        parts = []
-        for field in ("image_caption", "image_footnote", "chart_caption", "chart_footnote"):
+        caption_parts = []
+        for field in ("image_caption", "chart_caption"):
             value = content_item.get(field, "")
             if isinstance(value, list):
                 value = " ".join(value)
             value = _normalize_text(value)
             if value:
-                parts.append(value)
-        return "\n".join(parts)
+                caption_parts.append(value)
+
+        ocr_parts = []
+        for field in ("ocr", "image_text", "text", "image_footnote", "chart_footnote"):
+            value = content_item.get(field, "")
+            if isinstance(value, list):
+                value = " ".join(value)
+            value = _normalize_text(value)
+            if value:
+                ocr_parts.append(value)
+
+        image_path = ""
+        for field in ("image_path", "img_path", "path", "image"):
+            image_path = _resolve_media_path(output_root, content_item.get(field))
+            if image_path:
+                break
+        if image_path and image_output_dir is not None:
+            image_path = _copy_media_to_cache(image_path, image_output_dir)
+
+        caption = "\n".join(caption_parts)
+        ocr = "\n".join(ocr_parts)
+        text = "\n".join(part for part in (caption, ocr) if part)
+        if not any((caption, ocr, image_path)):
+            return None
+        return {
+            "type": item_type,
+            "modality": "image",
+            "caption": caption,
+            "ocr": ocr,
+            "text": text,
+            "image_path": image_path,
+            "page": _extract_page(content_item),
+            "bbox": content_item.get("bbox"),
+        }
 
     parts = [
         _normalize_text(content_item.get("text", "")),
@@ -301,16 +395,20 @@ def _collect_item_text(content_item: dict) -> str:
         _normalize_text(content_item.get("latex", "")),
         _normalize_text(content_item.get("html", "")),
     ]
-    return "\n".join(part for part in parts if part)
+    return _text_chunk(content_item, "\n".join(part for part in parts if part), item_type)
 
 
-def _load_mineru_content(output_root: Path, pdf_stem: str) -> List[str]:
+def _load_mineru_content(
+    output_root: Path,
+    pdf_stem: str,
+    image_output_dir: Path | None = None,
+) -> List[dict | str]:
     content_list_path = _find_output_file(output_root, pdf_stem, "_content_list.json")
     if content_list_path is not None:
         content_list = json.loads(content_list_path.read_text(encoding="utf-8"))
         chunks = []
         for item in content_list:
-            chunk = _collect_item_text(item)
+            chunk = _collect_item_chunk(item, output_root, image_output_dir)
             if chunk:
                 chunks.append(chunk)
         if chunks:
@@ -328,18 +426,25 @@ def _load_mineru_content(output_root: Path, pdf_stem: str) -> List[str]:
     ]
 
 
-def _parse_pdf_with_mineru(pdf_path: Path) -> List[str]:
+def _parse_pdf_with_mineru(
+    pdf_path: Path,
+    image_output_dir: Path | None = None,
+) -> List[dict | str]:
     with _temporary_directory(prefix=".psirag_mineru_", dir_path=pdf_path.parent) as output_dir:
         output_root = Path(output_dir)
         mineru_pdf_path = output_root / "document.pdf"
         shutil.copy2(pdf_path, mineru_pdf_path)
         _run_mineru(mineru_pdf_path, output_root)
-        return _load_mineru_content(output_root, mineru_pdf_path.stem)
+        return _load_mineru_content(output_root, mineru_pdf_path.stem, image_output_dir)
 
 
-def _parse_pdf_batch_with_mineru(pdf_paths: List[Path]) -> Dict[Path, List[str]]:
+def _parse_pdf_batch_with_mineru(
+    pdf_paths: List[Path],
+    image_output_dirs: Dict[Path, Path] | None = None,
+) -> Dict[Path, List[dict | str]]:
     if len(pdf_paths) == 1:
-        return {pdf_paths[0]: _parse_pdf_with_mineru(pdf_paths[0])}
+        image_output_dir = image_output_dirs.get(pdf_paths[0]) if image_output_dirs else None
+        return {pdf_paths[0]: _parse_pdf_with_mineru(pdf_paths[0], image_output_dir)}
 
     with _temporary_directory(prefix=".psirag_mineru_input_", dir_path=pdf_paths[0].parent) as input_dir, \
          _temporary_directory(prefix=".psirag_mineru_output_", dir_path=pdf_paths[0].parent) as output_dir:
@@ -353,7 +458,11 @@ def _parse_pdf_batch_with_mineru(pdf_paths: List[Path]) -> Dict[Path, List[str]]
 
         _run_mineru(input_root, output_root)
         return {
-            pdf_path: _load_mineru_content(output_root, pdf_stem)
+            pdf_path: _load_mineru_content(
+                output_root,
+                pdf_stem,
+                image_output_dirs.get(pdf_path) if image_output_dirs else None,
+            )
             for pdf_path, pdf_stem in pdf_name_map.items()
         }
 
@@ -394,7 +503,14 @@ def _parse_pdf_paths(
         bar = tqdm(total=batch_total, desc="parsing local pdf")
         for i in range(0, len(uncached_pdfs), batch_size):
             batch = uncached_pdfs[i : i + batch_size]
-            parsed_batch = _parse_pdf_batch_with_mineru([pdf_path for pdf_path, _, _ in batch])
+            image_output_dirs = {
+                pdf_path: cache_path.parent / f"{cache_path.stem}_assets"
+                for pdf_path, _, cache_path in batch
+            }
+            parsed_batch = _parse_pdf_batch_with_mineru(
+                [pdf_path for pdf_path, _, _ in batch],
+                image_output_dirs,
+            )
             for pdf_path, title, cache_path in batch:
                 document = {
                     "title": title,

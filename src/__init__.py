@@ -2,6 +2,7 @@ from .dataset import DataManager
 from .evaluation import Evaluator
 from .model import (BaseEmbeddingModel, OpenAIEmbeddingModel, TransformersEmbeddingModel,
                     SentenceTransformersEmbeddingModel, OllamaEmbeddingModel, VLLMEmbeddingModel,
+                    Qwen3VLEmbeddingModel,
                     BaseAbstractModel, OpenAIAbstractModel, TransformersAbstractModel, 
                     OllamaAbstractModel, VLLMAbstractModel, BaseQAModel, OpenAIQAModel, 
                     OllamaQAModel, TransformersQAModel, VLLMQAModel, BaseRerankModel, 

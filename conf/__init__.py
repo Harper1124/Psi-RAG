@@ -39,7 +39,8 @@ class Config(TypedDict, total=False):
     # =================================== Embedding config ===================================
     # Model name for embedding documents and queries, "[PLATFORM]:[MODEL_NAME_OR_PATH]"
     #   e.g., "transformers:nvidia/NV-Embed-v2", "transformers:facebook/contriever", 
-    #   "sentence-transformers:multi-qa-mpnet-base-cos-v1", "ollama:qwen3-embedding"
+    #   "sentence-transformers:multi-qa-mpnet-base-cos-v1", "ollama:qwen3-embedding",
+    #   "qwen3-vl:Qwen/Qwen3-VL-Embedding"
     embed_name: str
     # Cache directory of the embedding model, default to os.environ["HF_HOME"].
     embed_cache_dir: Path

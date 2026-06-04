@@ -18,6 +18,7 @@ from src import (
     VLLMEmbeddingModel,
     VLLMQAModel,
     VLLMRerankModel,
+    Qwen3VLEmbeddingModel,
     SentenceTransformersEmbeddingModel,
     TransformersEmbeddingModel,
     TransformersQAModel,
@@ -27,6 +28,7 @@ from src.pdf import prepare_local_pdf_dataset
 from src.prompt import AgentPrompt, get_qa_template
 from src.utils import (
     get_token_length,
+    format_node_for_context,
     load_answers,
     parse_response,
     save_answers,
@@ -44,6 +46,31 @@ def format_history(history, query):
         lines.append(f"{role.capitalize()}: {content}")
     lines.extend(["", f"Current question: {query}"])
     return "\n".join(lines)
+
+
+def format_retrieved_image_lines(layer_information):
+    lines = []
+    for node in layer_information:
+        metadata = node.get("metadata") or {}
+        modality = str(metadata.get("modality") or metadata.get("type") or "").lower()
+        if modality not in ("image", "chart", "figure"):
+            continue
+        caption = metadata.get("caption") or ""
+        ocr = metadata.get("ocr") or ""
+        source = metadata.get("source") or metadata.get("title") or ""
+        page = metadata.get("page", metadata.get("page_idx", ""))
+        image = metadata.get("image_path") or metadata.get("image") or ""
+        parts = [
+            f"node={node.get('node_index')}",
+            f"score={node.get('score'):.4f}" if isinstance(node.get("score"), (int, float)) else "",
+            f"source={source}" if source else "",
+            f"page={page}" if page not in (None, "") else "",
+            f"image={image}" if image else "",
+            f"caption={caption}" if caption else "",
+            f"OCR={ocr}" if ocr else "",
+        ]
+        lines.append("image: " + "; ".join(part for part in parts if part))
+    return lines
 
 
 def main():
@@ -143,6 +170,9 @@ def main():
                 "embed": VLLMEmbeddingModel,
                 "qa": VLLMQAModel,
                 "rerank": VLLMRerankModel,
+            },
+            "qwen3-vl": {
+                "embed": Qwen3VLEmbeddingModel,
             },
             "api": {
                 "qa": OpenAIQAModel,
@@ -425,12 +455,12 @@ def main():
             )
             if isinstance(tree_rag.tree, List):
                 context = [
-                    tree_rag.tree[doc_id].all_nodes[top_k_node_index].text
+                    format_node_for_context(tree_rag.tree[doc_id].all_nodes[top_k_node_index])
                     for top_k_node_index in top_k_scores.keys()
                 ]
             else:
                 context = [
-                    tree_rag.tree.all_nodes[top_k_node_index].text
+                    format_node_for_context(tree_rag.tree.all_nodes[top_k_node_index])
                     for top_k_node_index in top_k_scores.keys()
                 ]
 
@@ -444,6 +474,11 @@ def main():
                     f"sub-questions: {subquestions_text}",
                     f"thoughts: {thoughts_text}",
                     f"answer: {answer}",
+                    *format_retrieved_image_lines(
+                        node
+                        for layer_info in state_log["retrieved_nodes"]
+                        for node in layer_info
+                    ),
                     f"gold answer: {data.gold_answers[query_id] if query_id is not None and data.gold_answers is not None else 'NA'}",
                     "\n",
                 ]
@@ -512,12 +547,12 @@ def main():
             )
             if isinstance(tree_rag.tree, List):
                 context = [
-                    tree_rag.tree[doc_id].all_nodes[top_k_node_index].text
+                    format_node_for_context(tree_rag.tree[doc_id].all_nodes[top_k_node_index])
                     for top_k_node_index in top_k_scores.keys()
                 ]
             else:
                 context = [
-                    tree_rag.tree.all_nodes[top_k_node_index].text
+                    format_node_for_context(tree_rag.tree.all_nodes[top_k_node_index])
                     for top_k_node_index in top_k_scores.keys()
                 ]
             while len(context) < top_k:
@@ -530,6 +565,7 @@ def main():
                     *max_retrieval_time_verbose_lines,
                     f"thoughts: {thought}",
                     f"answer: {answer}",
+                    *format_retrieved_image_lines(layer_information),
                     f"gold answer: {data.gold_answers[query_id] if query_id is not None and data.gold_answers is not None else 'NA'}",
                     "\n",
                 ]

@@ -16,6 +16,8 @@ def _serialize_node(node: Node) -> Dict:
         "chunk_index": node.chunk_index,
         "children": sorted(node.children),
         "embeddings": node.embeddings,
+        "metadata": getattr(node, "metadata", {}),
+        "raw": getattr(node, "raw", None),
     }
 
 
@@ -27,6 +29,8 @@ def _deserialize_node(data: Dict) -> Node:
         chunk_index=data["chunk_index"],
         children=set(data["children"]),
         embeddings=data["embeddings"],
+        metadata=data.get("metadata", {}),
+        raw=data.get("raw"),
     )
 
 

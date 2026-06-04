@@ -14,6 +14,7 @@ from src import (
     OllamaEmbeddingModel,
     VLLMEmbeddingModel,
     VLLMAbstractModel,
+    Qwen3VLEmbeddingModel,
     SentenceTransformersEmbeddingModel,
     TransformersAbstractModel,
     TransformersEmbeddingModel,
@@ -103,6 +104,9 @@ def main():
             "vllm": {
                 "embed": VLLMEmbeddingModel,
                 "abs": VLLMAbstractModel,
+            },
+            "qwen3-vl": {
+                "embed": Qwen3VLEmbeddingModel,
             },
             "api": {
                 "abs": OpenAIAbstractModel,

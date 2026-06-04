@@ -3,7 +3,8 @@ from .embed import (BaseEmbeddingModel,
                     TransformersEmbeddingModel,
                     SentenceTransformersEmbeddingModel, 
                     OllamaEmbeddingModel,
-                    VLLMEmbeddingModel,)
+                    VLLMEmbeddingModel,
+                    Qwen3VLEmbeddingModel,)
 from .abstract import (BaseAbstractModel, 
                        OpenAIAbstractModel, 
                        TransformersAbstractModel,

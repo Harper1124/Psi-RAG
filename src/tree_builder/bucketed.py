@@ -257,6 +257,8 @@ class BucketedAbstractTreeBuilder(AbstractTreeBuilder):
                 chunk_index=node.chunk_index,
                 children=child_global_indices,
                 embeddings=node.embeddings,
+                metadata=getattr(node, "metadata", {}),
+                raw=getattr(node, "raw", None),
             )
 
         for local_layer, node_list in fragment_layers.items():
@@ -297,6 +299,8 @@ class BucketedAbstractTreeBuilder(AbstractTreeBuilder):
                     chunk_index=node.chunk_index,
                     children=set(),
                     embeddings=np.asarray(node.embeddings),
+                    metadata=getattr(node, "metadata", {}),
+                    raw=getattr(node, "raw", None),
                 )
             fragment_nodes, fragment_layers, root_ids = self._build_fragment(leaf_nodes)
             fragments.append((bucket_global_indices, fragment_nodes, fragment_layers, root_ids))
@@ -338,6 +342,8 @@ class BucketedAbstractTreeBuilder(AbstractTreeBuilder):
                 chunk_index=node.chunk_index,
                 children=set(),
                 embeddings=np.asarray(node.embeddings),
+                metadata=getattr(node, "metadata", {}),
+                raw=getattr(node, "raw", None),
             )
 
         meta_nodes, meta_layers, _ = self._build_fragment(meta_leaf_nodes)

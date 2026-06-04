@@ -10,7 +10,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Set, Tuple
 from tqdm import tqdm
 
-from ..utils import Node, Tree
+from ..utils import Node, Tree, chunk_metadata, chunk_to_embedding_input, chunk_to_text
 
 logging.basicConfig(format="%(asctime)s - %(message)s", 
                     level=logging.INFO,
@@ -38,11 +38,18 @@ class TreeBuilder:
         if children_indices is None:
             children_indices = set()
         
+        display_text = chunk_to_text(text)
+        metadata = chunk_metadata(text)
+        raw = text if metadata else None
+
         if text is not None:
-            embeddings = self.conf["embed_model"].embed(text)
+            embeddings = self.conf["embed_model"].embed(chunk_to_embedding_input(text))
         else:
             embeddings = None
-        return (index, Node(text, index, document_index, chunk_index, children_indices, embeddings))
+        return (
+            index,
+            Node(display_text, index, document_index, chunk_index, children_indices, embeddings, metadata, raw),
+        )
     
     def create_node_batch(
         self, 
@@ -59,10 +66,21 @@ class TreeBuilder:
         nodelist = {}
         for idx, passage in enumerate(text, start_idx):
             if embedding is not None:
-                embeddings = embedding[idx]
+                embeddings = embedding[idx - start_idx]
             else:
-                embeddings = self.conf["embed_model"].embed(text)
-            nodelist.update({idx: Node(passage, idx, document_index, idx - start_idx, copy.deepcopy(children_indices), embeddings)})
+                embeddings = self.conf["embed_model"].embed(chunk_to_embedding_input(passage))
+            nodelist.update({
+                idx: Node(
+                    chunk_to_text(passage),
+                    idx,
+                    document_index,
+                    idx - start_idx,
+                    copy.deepcopy(children_indices),
+                    embeddings,
+                    chunk_metadata(passage),
+                    passage if chunk_metadata(passage) else None,
+                )
+            })
 
         return nodelist, max(nodelist.keys())
 
@@ -98,14 +116,20 @@ class TreeBuilder:
         
         passage_to_node_indices = {i:[] for i in range(len(docs))}
 
-        batch_embedding_models = ("nvidia/NV-Embed-v2",
-                                  "Qwen/Qwen3-Embedding-8B",)
+        batch_embedding_model_names = ("nvidia/NV-Embed-v2", "Qwen/Qwen3-Embedding-8B")
+        is_batch_embedding_model = (
+            self.conf["embed_model"].model_name in batch_embedding_model_names
+            or self.conf["embed_model"].__class__.__name__ == "Qwen3VLEmbeddingModel"
+        )
 
-        if self.conf["embed_model"].model_name in batch_embedding_models:
+        if is_batch_embedding_model:
             leaf_nodes = {}
             if isinstance(docs[0], List):
                 print(f"Creating batched leaf nodes with {self.conf['embed_model'].model_name}...")
-                embeddings = self.conf["embed_model"].embed(list(chain(*docs)))
+                flattened_docs = list(chain(*docs))
+                embeddings = self.conf["embed_model"].embed([
+                    chunk_to_embedding_input(doc) for doc in flattened_docs
+                ])
                 max_idx = -1
                 for document_index, chunk in enumerate(docs):
                     leaf_batch, max_idx = self.create_node_batch(document_index, chunk, start_idx=max_idx + 1, embedding=embeddings)
@@ -113,10 +137,14 @@ class TreeBuilder:
                     leaf_nodes.update(leaf_batch)
             else:
                 print(f"Creating leaf nodes with {self.conf['embed_model'].model_name}...")
-                embeddings = self.conf["embed_model"].embed(docs)
+                embeddings = self.conf["embed_model"].embed([
+                    chunk_to_embedding_input(doc) for doc in docs
+                ])
                 for index, text in enumerate(docs):
                     _, node = self.create_node(index, -1, index)
-                    node.text = text
+                    node.text = chunk_to_text(text)
+                    node.metadata = chunk_metadata(text)
+                    node.raw = text if node.metadata else None
                     node.embeddings = embeddings[index]
                     leaf_nodes[index] = node
                 
@@ -160,7 +188,7 @@ class TreeBuilder:
         all_nodes = copy.deepcopy(leaf_nodes)
 
         start_time = time.time()
-        if self.conf["reorganize_leaf"] or isinstance(docs[0], str): 
+        if self.conf["reorganize_leaf"] or not isinstance(docs[0], List): 
             root_nodes = self._construct_tree(all_nodes, layer_to_node_indices, 
                                                use_multithreading=use_multithreading)
         else: 
@@ -176,28 +204,39 @@ class TreeBuilder:
     def build_index_list(self, docs: List[str] | List[List[str]], use_multithreading: bool = True) -> Tuple[List[Tree], float]:
         logging.info("Creating Leaf Nodes")
 
-        batch_embedding_models = ("nvidia/NV-Embed-v2",
-                                  "Qwen/Qwen3-Embedding-8B",)
+        batch_embedding_model_names = ("nvidia/NV-Embed-v2", "Qwen/Qwen3-Embedding-8B")
+        is_batch_embedding_model = (
+            self.conf["embed_model"].model_name in batch_embedding_model_names
+            or self.conf["embed_model"].__class__.__name__ == "Qwen3VLEmbeddingModel"
+        )
 
-        if self.conf["embed_model"].model_name in batch_embedding_models:
+        if is_batch_embedding_model:
             leaf_nodes_list = []
             if isinstance(docs[0], List): 
                 print(f"Creating batched leaf nodes with {self.conf['embed_model'].model_name}...")
                 for dataset_index, dataset_docs in enumerate(docs):
                     leaf_nodes_list.append({})
-                    embeddings = self.conf["embed_model"].embed(dataset_docs)
+                    embeddings = self.conf["embed_model"].embed([
+                        chunk_to_embedding_input(doc) for doc in dataset_docs
+                    ])
                     for index, text in enumerate(dataset_docs):
                         _, node = self.create_node(index, -1, index)
-                        node.text = text
+                        node.text = chunk_to_text(text)
+                        node.metadata = chunk_metadata(text)
+                        node.raw = text if node.metadata else None
                         node.embeddings = embeddings[index]
                         leaf_nodes_list[dataset_index][index] = node
             else: 
                 print(f"Creating leaf nodes with {self.conf['embed_model'].model_name}...")
                 leaf_nodes_list.append({})
-                embeddings = self.conf["embed_model"].embed(docs)
+                embeddings = self.conf["embed_model"].embed([
+                    chunk_to_embedding_input(doc) for doc in docs
+                ])
                 for index, text in enumerate(docs):
                     _, node = self.create_node(index, -1, index)
-                    node.text = text
+                    node.text = chunk_to_text(text)
+                    node.metadata = chunk_metadata(text)
+                    node.raw = text if node.metadata else None
                     node.embeddings = embeddings[index]
                     leaf_nodes_list[0][index] = node
                 
