@@ -159,12 +159,13 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
         self.model = None
         self.processor = None
         self.embedder = None
+        self.sentence_model = None
         self.model_kwargs = kwargs
         self.batch_size = self.model_kwargs.pop("batch_size", 4)
         self.normalize = self.model_kwargs.pop("normalize", True)
 
     def load_model(self):
-        if self.embedder is not None or self.model is not None:
+        if self.embedder is not None or self.sentence_model is not None or self.model is not None:
             return
 
         try:
@@ -177,6 +178,16 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
             return
         except ImportError:
             pass
+
+        try:
+            self.sentence_model = SentenceTransformer(
+                self.model_name,
+                cache_folder=self.cache_dir,
+                trust_remote_code=True,
+            )
+            return
+        except Exception as sentence_transformer_error:
+            self.sentence_transformer_error = sentence_transformer_error
 
         try:
             from transformers import AutoProcessor, AutoModel
@@ -244,7 +255,7 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
                     batch_embs = outputs.last_hidden_state[:, 0]
                 if self.normalize:
                     batch_embs = normalize(batch_embs, p=2, dim=1)
-                embs.append(batch_embs.detach().cpu().numpy())
+                embs.append(batch_embs.float().detach().cpu().numpy())
         return np.concatenate(embs, axis=0)
 
     def embed(self, text):
@@ -254,6 +265,21 @@ class Qwen3VLEmbeddingModel(BaseEmbeddingModel):
 
         if self.embedder is not None:
             embs = self._embed_with_official_embedder(items)
+        elif self.sentence_model is not None:
+            sentence_inputs = []
+            for item in items:
+                if item.get("image") and item.get("text"):
+                    sentence_inputs.append({"text": item["text"], "image": item["image"]})
+                elif item.get("image"):
+                    sentence_inputs.append(item["image"])
+                else:
+                    sentence_inputs.append(item["text"])
+            embs = self.sentence_model.encode(
+                sentence_inputs,
+                batch_size=self.batch_size,
+                normalize_embeddings=self.normalize,
+                show_progress_bar=False,
+            )
         else:
             embs = self._embed_with_transformers(items)
 
