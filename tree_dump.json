@@ -920,7 +920,7 @@
         33
       ],
       "embedding_dim": 2048,
-      "text": "Summary: Ψ-RAG is a Tree-RAG framework addressing limitations in cross-document multi-hop retrieval. It uses a hierarchical abstract tree index built via \"merging and collapse\" for better distribution adaptability, an..."
+      "text": ""
     }
   ]
 }
