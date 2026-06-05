@@ -22,7 +22,7 @@
     {
       "type": "text",
       "modality": "text",
-      "text": "Retrieval-augmented generation (RAG) enhances large language models with external knowledge, and tree-based RAG organizes documents into hierarchical indexes to support queries at multiple granularities. However, existing Tree-RAG methods designed for single-document retrieval face critical challenges in scaling to cross-document multi-hop questions: (1) poor distribution adaptability, where k-means clustering introduces noise due to rigid distribution assumptions; (2) structural isolation, as tree indexes lack explicit cross-document connections; and (3) coarse abstraction, which obscures fine-grained details. To address these limitations, we propose Ψ-RAG, a tree-RAG framework with two key components. First, a hierarchical abstract tree index built through an iterative “merging and collapse” process that adapts to data distributions without a priori assumption. Second, a multi-granular retrieval agent that intelligently interacts with the knowledge base with reorganized queries and an agent-powered hybrid retriever. Ψ-RAG supports diverse tasks from token-level question answering to document-level summarization. On crossdocument multi-hop QA benchmarks, it outperforms RAPTOR by 25.9% and HippoRAG 2 by 7.4% in average F1 score 1 .",
+      "text": "Retrieval-augmented generation (RAG) enhances large language models with external knowledge, and tree-based RAG organizes documents into hierarchical indexes to support queries at multiple granularities. However, existing Tree-RAG methods designed for single-document retrieval face critical challenges in scaling to cross-document multi-hop questions: (1) poor distribution adaptability, where k-means clustering introduces noise due to rigid distribution assumptions; (2) structural isolation, as tree indexes lack explicit cross-document connections; and (3) coarse abstraction, which obscures fine-grained details. To address these limitations, we propose Ψ-RAG, a tree-RAG framework with two key components. First, a hierarchical abstract tree index built through an iterative “merging and collapse” process that adapts to data distributions without a priori assumption. Second, a multi-granular retrieval agent that intelligently interacts with the knowledge base with reorganized queries and an agent-powered hybrid retriever. Ψ-RAG supports diverse tasks from token-level question answering to document-level summarization. On crossdocument multi-hop QA benchmarks, it outperforms RAPTOR by 25.9% and HippoRAG 2 by 7.4% in average F1 score1.",
       "page": 0
     },
     {
@@ -90,9 +90,19 @@
     },
     {
       "type": "table",
-      "modality": "text",
-      "text": "Table 1. Comparison of RAG frameworks. “ ? ” indicates limited support by specific methods.\nTask type Single- document Cross- document Token- level Passage- level Document- level Traditional RAG >>>> x>x√ √ ?>>> x?>> Graph-RAG 【 Tree-RAG ？ 亚-RAG (Ours) √",
-      "page": 1
+      "modality": "table",
+      "text": "Table 1. Comparison of RAG frameworks. “?” indicates limited support by specific methods.\nTask type Single- document Cross- document Token- level Passage- level Document- level Traditional RAG >>>> x>x√ √ ?>>> x?>> Graph-RAG 【 Tree-RAG ？ 亚-RAG (Ours) √",
+      "table_caption": "Table 1. Comparison of RAG frameworks. “?” indicates limited support by specific methods.",
+      "table_body": "Task type Single- document Cross- document Token- level Passage- level Document- level Traditional RAG >>>> x>x√ √ ?>>> x?>> Graph-RAG 【 Tree-RAG ？ 亚-RAG (Ours) √",
+      "html": "",
+      "image_path": "/data/yzy/psiRAG/Psi-RAG/.psirag_pdf_cache/test_assets/d4eda3424b676a7ea2f61de2de8960d6ec91a4ded4cf3f18c1d6475e8edd1284.jpg",
+      "page": 1,
+      "bbox": [
+        91,
+        125,
+        470,
+        198
+      ]
     },
     {
       "type": "text",

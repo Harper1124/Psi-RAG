@@ -1,0 +1,926 @@
+{
+  "tree_id": null,
+  "nodes": [
+    {
+      "id": 0,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 0,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "# Hierarchical Abstract Tree for Cross-Document Retrieval-Augmented Generation",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 1,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 1,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Ziwen Zhao 1 Menglin Yang 1",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 2,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 2,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "## Abstract",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 3,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 3,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Retrieval-augmented generation (RAG) enhances large language models with external knowledge, and tree-based RAG organizes documents into hierarchical indexes to support queries at multiple granularities",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 4,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 4,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "However, existing Tree-RAG methods designed for single-document retrieval face critical challenges in scaling to cross-document multi-hop questions: (1) poor distribution adaptability, where k-means clustering introdu...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 5,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 5,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "First, a hierarchical abstract tree index built through an iterative “merging and collapse” process that adapts to data distributions without a priori assumption Second, a multi-granular retrieval agent that intellige...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 6,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 6,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "9% and HippoRAG 2 by 7 4% in average F1 score1",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 7,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 7,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "## 1 Introduction",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 8,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 8,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Retrieval-augmented generation (RAG) (Lewis et al , 2020) enhances large language models (LLMs) with reliable references from external knowledge bases To effectively address multi-granular user queries from token-leve...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 9,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 9,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": ", 2009; Karpukhin et al , 2020) slice documents into short, independent chunks; this fixed retrieval granularity leads to incomplete and inaccurate responses for higher-level questions (Nair et al , 2023; Liu et al , ...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 10,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 10,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Figure 1. (a) Two RAG application scenarios: single-document and cross-document retrieval. (b) Multi-hop QA performance w.r.t. the number of documents in the tree index. (c) Ψ-RAG has both efficient indexing and accur...",
+      "metadata": {
+        "type": "chart",
+        "modality": "image",
+        "source": "test",
+        "page": 0,
+        "image_path": "/data/yzy/psiRAG/Psi-RAG/.psirag_pdf_cache/test_assets/b2f7b1fbe9dd0d0265ca17a5656690f1a4bd0d12c7371eeec95e166bc0c3ad3e.jpg",
+        "caption": "Figure 1. (a) Two RAG application scenarios: single-document and cross-document retrieval. (b) Multi-hop QA performance w.r.t. the number of documents in the tree index. (c) Ψ-RAG has both efficient indexing and accurate multi-hop retrieval compared to structured RAG baselines, using 2Wiki as an example.",
+        "bbox": [
+          705,
+          390,
+          879,
+          530
+        ]
+      },
+      "raw_keys": [
+        "bbox",
+        "caption",
+        "image_path",
+        "modality",
+        "ocr",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "image",
+      "page": 0
+    },
+    {
+      "id": 11,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 11,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Structured RAG achieves multi-granularity by organizing documents relationally with knowledge graph indexes (Edge et al , 2024; Jimenez Guti ´ errez et al ´ , 2024; 2025) or hierarchically with tree indexes (Liu et al...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 12,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 12,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Its utility is demonstrated in two key scenarios, as in Figure 1(a): (1) single-document retrieval, to process user requests in diverse granularity within a single user-uploaded document (Jin et al , 2025a; Li et al ,...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 13,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 13,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": ", 2025a); (2) cross-document retrieval, to process user requests by building a large index from an entire (domain-specific) corpus and retrieving across multiple documents, challenging the multi-hop retrieval and reas...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 0
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 0
+    },
+    {
+      "id": 14,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 14,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Table caption: Table 1 Comparison of RAG frameworks “ ” indicates limited support by specific methods Table body: Task type Single- document Cross- document Token- level Passage- level Document- level Traditional RAG ...",
+      "metadata": {
+        "type": "table",
+        "modality": "table",
+        "source": "test",
+        "page": 1,
+        "image_path": "/data/yzy/psiRAG/Psi-RAG/.psirag_pdf_cache/test_assets/d4eda3424b676a7ea2f61de2de8960d6ec91a4ded4cf3f18c1d6475e8edd1284.jpg",
+        "table_caption": "Table 1. Comparison of RAG frameworks. “?” indicates limited support by specific methods.",
+        "table_body": "Task type Single- document Cross- document Token- level Passage- level Document- level Traditional RAG >>>> x>x√ √ ?>>> x?>> Graph-RAG 【 Tree-RAG ？ 亚-RAG (Ours) √",
+        "bbox": [
+          91,
+          125,
+          470,
+          198
+        ]
+      },
+      "raw_keys": [
+        "bbox",
+        "html",
+        "image_path",
+        "modality",
+        "page",
+        "source",
+        "table_body",
+        "table_caption",
+        "text",
+        "type"
+      ],
+      "modality": "table",
+      "page": 1
+    },
+    {
+      "id": 15,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 15,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Our work focuses on Tree-RAG (Liu et al , 2021; Jin et al , 2025b; Sarthi et al , 2024; Tao et al , 2025; Rezazadeh et al , 2025), which organizes documents into a tree-structured index It explicitly defines different...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 16,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 16,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": ", 2025) See Appendix F for more related works However, existing Tree-RAG methods mainly target single-hop retrieval on a single long document, while cross-document and multihop retrieval remain underexplored For examp...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 17,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 17,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "As shown in Figure 1(b), RAPTOR’s retrieval accuracy drops significantly when the search space expands to corpus-level with millions of tokens We identify three key limitations: (1) Poor distribution adaptability: k-m...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 18,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 18,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "(2) Structural isolation: unlike Graph-RAG which dynamically hops between documents based on pairwise relationships, leaf nodes in a tree index lack explicit connections This prevents the retriever from capturing impl...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 19,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 19,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "This work aims to address the limitations of Tree-RAG on cross-document and multi-hop retrieval We present Ψ-RAG, a versatile and effective Tree-RAG framework, comprising a hierarchical abstract tree index and a multi...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 20,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 20,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "(2) To tackle structural isolation, a retrieval and answering agent reasons through the user query, during which it calls for additional document retrieval with a reorganized query when needed This empowers the tree r...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 21,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 21,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Our proposed framework possesses numerous advantages:",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 22,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 22,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "• Ψ-RAG generalizes Tree-RAG from passage-level to corpus-level indexing As shown in Figure 1(c), Ψ-RAG builds a corpus-level tree 10× faster than OpenIE-based Graph-RAG Under this setting, Ψ-RAG achieves average gain...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 23,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 23,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "• Ψ-RAG extends Tree-RAG to complex multi-hop scenarios To our knowledge, Ψ-RAG is the first Tree-RAG for cross-document multi-hop scenarios comparable to Graph-RAG, exhibiting great application potential As in Figure...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 24,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 24,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "• As in Table 1, Ψ-RAG is an all-in-one Tree-RAG framework supporting tasks across various granularities: token-level factual QA, passage-level causal reasoning, and document-level summarization",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 25,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 25,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "• Ψ-RAG is built entirely with open-source LLMs Its components are flexibly replaceable Ψ-RAG can be applied to custom corpora without any training or finetuning, demonstrating strong generalizability",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 26,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 26,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "## 2 Preliminary",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 27,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 27,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Retrieval-Augmented Generation Given a user query q, an LLM f(q; I) generates a corresponding response a, where I is the system instruction for a specific task For a reasoning model, $a = R \\cup y ,$ , where R is the ...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 28,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 28,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "An LLM equipped with RAG can be defined as $f \\cdot r ,$ where the retriever $r ( q ; \\mathcal { T } )$ maps q to top-k relevant document chunks $\\mathcal { D } ^ { * } ~ = ~ \\{ u _ { i } \\} _ { i = 1 } ^ { k } ~ \\sub...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 29,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 29,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "The external corpus D contains $n = | \\mathcal { D } |$ chunks in total The index $\\mathcal { T } : \\mathcal { D } \\mathcal { T }$ maps each chunk in D to a discrete index space T for better retrieval",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 30,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 30,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Formally a tree $\\boldsymbol { \\mathcal { T } } = ( \\boldsymbol { \\nu }",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 31,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 31,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "\\boldsymbol { \\mathcal { E } } )$ is a connected acyclic graph with a finite node set $\\dot { \\mathcal { V } } = \\{ v _ { i } \\} _ { i = 1 } ^ { | \\mathcal { V } | }$ and an edge set $\\varepsilon \\subset$ $\\nu \\times ...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 32,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 32,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "Tree Index We overload the symbol T to denote a tree The root node for a node u is denoted as $r o o t ( u )$ The set of children of u is $c ( u ) = \\{ v | u v \\in \\mathcal { E } \\}$ Let $\\ell ( u )$ be the set of all...",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 33,
+      "layer": 0,
+      "document_index": 0,
+      "chunk_index": 33,
+      "children_count": 0,
+      "children": [],
+      "embedding_dim": 2048,
+      "text": "The depth of a node $\\delta ( \\cdot )$ is defined as the length of the path to the root,",
+      "metadata": {
+        "type": "text",
+        "modality": "text",
+        "source": "test",
+        "page": 1
+      },
+      "raw_keys": [
+        "modality",
+        "page",
+        "source",
+        "text",
+        "type"
+      ],
+      "modality": "text",
+      "page": 1
+    },
+    {
+      "id": 0,
+      "layer": 0,
+      "document_index": -1,
+      "chunk_index": -1,
+      "children_count": 34,
+      "children": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33
+      ],
+      "embedding_dim": 2048,
+      "text": "Summary: Ψ-RAG is a Tree-RAG framework addressing limitations in cross-document multi-hop retrieval. It uses a hierarchical abstract tree index built via \"merging and collapse\" for better distribution adaptability, an..."
+    }
+  ]
+}
