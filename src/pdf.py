@@ -168,6 +168,7 @@ def _load_cached_document(cache_path: Path, title: str) -> Dict | None:
         return None
     if not isinstance(cached_document.get("chunks"), list):
         return None
+    cached_document["chunks"] = _postprocess_visual_chunks(cached_document["chunks"])
     return cached_document
 
 
@@ -177,6 +178,109 @@ def _save_cached_document(cache_path: Path, document: Dict) -> None:
         json.dumps(document, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+
+
+def _figure_id(caption: str) -> str:
+    match = re.search(r"\b(?:Figure|Fig\.)\s*\.?\s*(\d+)", caption, flags=re.IGNORECASE)
+    return match.group(1) if match else ""
+
+
+def _is_figure_caption(caption: str) -> bool:
+    return bool(re.match(r"^\s*(?:Figure|Fig\.)\s*\.?\s*\d+\b", caption, flags=re.IGNORECASE))
+
+
+def _split_subfigure_caption(caption: str) -> Dict[str, str]:
+    matches = list(re.finditer(r"\(([a-z])\)", caption, flags=re.IGNORECASE))
+    if not matches:
+        return {}
+
+    parts = {}
+    for index, match in enumerate(matches):
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(caption)
+        text = caption[start:end].strip(" .;:")
+        if text:
+            parts[match.group(1).lower()] = text
+    return parts
+
+
+def _chunk_sort_key(chunk: dict):
+    bbox = chunk.get("bbox") or []
+    if isinstance(bbox, list) and len(bbox) >= 2:
+        return (chunk.get("page") if chunk.get("page") is not None else -1, bbox[1], bbox[0])
+    return (chunk.get("page") if chunk.get("page") is not None else -1, 0, 0)
+
+
+def _ensure_visual_text(chunk: dict, figure_caption: str = "", subfigure_label: str = "", subfigure_caption: str = "") -> None:
+    caption = _normalize_text(chunk.get("caption", ""))
+    ocr = _normalize_text(chunk.get("ocr", ""))
+    text = _normalize_text(chunk.get("text", ""))
+    figure_caption = _normalize_text(figure_caption)
+    subfigure_caption = _normalize_text(subfigure_caption)
+
+    if figure_caption and not caption:
+        caption = figure_caption
+        chunk["caption"] = caption
+    if subfigure_label:
+        chunk["subfigure"] = subfigure_label
+    if subfigure_caption:
+        chunk["subfigure_caption"] = subfigure_caption
+
+    parts = []
+    figure_no = _figure_id(figure_caption or caption)
+    if figure_no and subfigure_label and subfigure_caption:
+        parts.append(f"Figure {figure_no}({subfigure_label}): {subfigure_caption}")
+    elif figure_caption:
+        parts.append(f"Figure caption: {figure_caption}")
+    if caption and caption not in parts:
+        parts.append(f"Caption: {caption}")
+    if ocr:
+        parts.append(f"OCR: {ocr}")
+    if text and text not in (caption, ocr):
+        parts.append(text)
+    if chunk.get("image_path") and not parts:
+        parts.append("Image content is available at the attached image path.")
+    chunk["text"] = "\n".join(dict.fromkeys(part for part in parts if part))
+
+
+def _postprocess_visual_chunks(chunks: List[dict | str]) -> List[dict | str]:
+    visual_chunks = [
+        chunk for chunk in chunks
+        if isinstance(chunk, dict)
+        and str(chunk.get("modality") or chunk.get("type") or "").lower() in ("image", "chart", "figure")
+        and chunk.get("image_path")
+    ]
+    if not visual_chunks:
+        return chunks
+
+    captions_by_page: Dict[object, List[str]] = {}
+    for chunk in chunks:
+        if not isinstance(chunk, dict):
+            continue
+        caption = _normalize_text(chunk.get("caption") or chunk.get("text") or "")
+        if _is_figure_caption(caption):
+            captions_by_page.setdefault(chunk.get("page"), []).append(caption)
+
+    visuals_by_page: Dict[object, List[dict]] = {}
+    for chunk in visual_chunks:
+        visuals_by_page.setdefault(chunk.get("page"), []).append(chunk)
+
+    for page, page_visuals in visuals_by_page.items():
+        page_visuals.sort(key=_chunk_sort_key)
+        figure_caption = captions_by_page.get(page, [""])[-1]
+        subcaptions = _split_subfigure_caption(figure_caption)
+        labels = sorted(subcaptions.keys())
+
+        for index, chunk in enumerate(page_visuals):
+            label = labels[index] if index < len(labels) else ""
+            _ensure_visual_text(
+                chunk,
+                figure_caption=figure_caption,
+                subfigure_label=label,
+                subfigure_caption=subcaptions.get(label, ""),
+            )
+
+    return chunks
 
 
 def _run_mineru(input_path: Path, output_root: Path) -> None:
@@ -445,7 +549,7 @@ def _load_mineru_content(
             if chunk:
                 chunks.append(chunk)
         if chunks:
-            return chunks
+            return _postprocess_visual_chunks(chunks)
 
     markdown_path = _find_output_file(output_root, pdf_stem, ".md")
     if markdown_path is None:

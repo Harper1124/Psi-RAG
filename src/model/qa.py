@@ -1,4 +1,5 @@
 import os
+import re
 
 from openai import OpenAI
 from datetime import datetime
@@ -80,11 +81,63 @@ class OllamaQAModel(BaseQAModel):
         self.cache_dir = cache_dir
         self.model_kwargs = kwargs
         self.think = model_name in ("qwen3:8b", "qwen3:30b", "qwen3:32b",)
+        self.multimodal = any(token in model_name.lower() for token in ("vl", "vision", "llava"))
+
+    def _attach_context_images(self, messages):
+        if not self.multimodal or not isinstance(messages, list):
+            return messages
+
+        image_paths = []
+        for message in messages:
+            content = message.get("content", "") if isinstance(message, dict) else ""
+            if not isinstance(content, str):
+                continue
+            for match in re.finditer(r"image=([^;\]\n\r]+)", content):
+                image_path = match.group(1).strip().strip('"')
+                if image_path and os.path.exists(image_path) and image_path not in image_paths:
+                    image_paths.append(image_path)
+
+        if not image_paths:
+            return messages
+
+        max_images = int(self.model_kwargs.get("max_context_images", 4))
+        image_paths = image_paths[:max_images]
+        next_messages = []
+        attached = False
+        for index, message in enumerate(messages):
+            if not isinstance(message, dict):
+                next_messages.append(message)
+                continue
+            next_message = message.copy()
+            is_last_user = (
+                next_message.get("role") == "user"
+                and not any(
+                    isinstance(m, dict) and m.get("role") == "user"
+                    for m in messages[index + 1:]
+                )
+            )
+            if is_last_user:
+                existing_images = list(next_message.get("images") or [])
+                for image_path in image_paths:
+                    if image_path not in existing_images:
+                        existing_images.append(image_path)
+                next_message["images"] = existing_images
+                attached = True
+            next_messages.append(next_message)
+
+        if not attached:
+            next_messages.append({
+                "role": "user",
+                "content": "Use the attached retrieved images when answering the question.",
+                "images": image_paths,
+            })
+        return next_messages
 
     def qa(self, question, max_tokens=1000, **kwargs):
         stream = kwargs.get("stream", False)
 
         try:
+            question = self._attach_context_images(question)
             params = {
                 "messages": question,
                 "options": {

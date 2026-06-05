@@ -253,7 +253,16 @@ class DataManager:
                     if is_chunk_dict(chunk):
                         enriched_chunk = chunk.copy()
                         enriched_chunk.setdefault("source", sample_text["title"])
-                        if chunk_to_text(enriched_chunk):
+                        modality = str(
+                            enriched_chunk.get("modality")
+                            or enriched_chunk.get("type")
+                            or "text"
+                        ).lower()
+                        has_media = bool(
+                            enriched_chunk.get("image_path")
+                            or enriched_chunk.get("image")
+                        )
+                        if chunk_to_text(enriched_chunk) or (has_media and modality in ("image", "chart", "figure", "table")):
                             chunks.append(enriched_chunk)
                     else:
                         chunks.append(sample_text["title"] + "\n" + str(chunk))

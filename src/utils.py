@@ -22,7 +22,7 @@ logging.basicConfig(format="%(asctime)s - %(message)s",
 
 MULTIMODAL_CHUNK_KEYS = (
     "type", "modality", "text", "caption", "ocr", "image", "image_path",
-    "table_caption", "table_body", "html",
+    "table_caption", "table_body", "html", "subfigure", "subfigure_caption",
 )
 
 
@@ -69,6 +69,10 @@ def chunk_to_text(chunk: Any, include_metadata: bool = False) -> str:
 
     if modality in ("image", "chart", "figure"):
         parts = []
+        subfigure = _first_nonempty(chunk.get("subfigure"))
+        subfigure_caption = _first_nonempty(chunk.get("subfigure_caption"))
+        if subfigure and subfigure_caption:
+            parts.append(f"Subfigure ({subfigure}): {subfigure_caption}")
         if caption:
             parts.append(f"Caption: {caption}")
         if ocr and ocr != caption:
@@ -101,7 +105,8 @@ def chunk_metadata(chunk: Any) -> Dict[str, Any]:
         return {}
     keys = (
         "type", "modality", "source", "title", "page", "page_idx", "image_path",
-        "image", "caption", "ocr", "table_caption", "table_body", "html", "bbox",
+        "image", "caption", "ocr", "subfigure", "subfigure_caption",
+        "table_caption", "table_body", "html", "bbox",
     )
     return {key: chunk[key] for key in keys if key in chunk and chunk[key] not in (None, "")}
 
