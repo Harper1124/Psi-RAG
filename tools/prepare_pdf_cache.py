@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import argparse
+import importlib.util
 import json
 import shutil
 import sys
@@ -7,16 +8,19 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-if str(REPO_ROOT) not in sys.path:
-    sys.path.insert(0, str(REPO_ROOT))
 
-from src.pdf import (  # noqa: E402
-    _get_cache_path,
-    _get_cache_root,
-    _get_pdf_title,
-    _parse_pdf_with_mineru,
-    _save_cached_document,
-)
+
+def load_pdf_helpers():
+    pdf_module_path = REPO_ROOT / "src" / "pdf.py"
+    spec = importlib.util.spec_from_file_location("psirag_pdf_helpers", pdf_module_path)
+    if spec is None or spec.loader is None:
+        raise ImportError(f'Cannot load PDF helpers from "{pdf_module_path}".')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+pdf_helpers = load_pdf_helpers()
 
 
 def parse_args():
@@ -64,8 +68,8 @@ def parse_args():
 
 
 def default_cache_path(pdf_path: Path) -> Path:
-    cache_root = _get_cache_root(pdf_path, "file")
-    return _get_cache_path(pdf_path, cache_root, None)
+    cache_root = pdf_helpers._get_cache_root(pdf_path, "file")
+    return pdf_helpers._get_cache_path(pdf_path, cache_root, None)
 
 
 def summarize_chunks(chunks):
@@ -103,13 +107,13 @@ def main():
         if assets_dir.exists():
             shutil.rmtree(assets_dir)
 
-    title = args.title or _get_pdf_title(pdf_path, None)
-    chunks = _parse_pdf_with_mineru(pdf_path, image_output_dir=assets_dir)
+    title = args.title or pdf_helpers._get_pdf_title(pdf_path, None)
+    chunks = pdf_helpers._parse_pdf_with_mineru(pdf_path, image_output_dir=assets_dir)
     document = {
         "title": title,
         "chunks": chunks,
     }
-    _save_cached_document(out_path, document)
+    pdf_helpers._save_cached_document(out_path, document)
 
     print(f'Wrote cache: "{out_path}"')
     print(f'Wrote assets: "{assets_dir}"')
