@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import shutil
 from typing import Dict, Tuple, List, Set
 from threading import Lock
@@ -63,6 +64,93 @@ class TreeRetriever:
     
     def embed(self, text: str) -> List[float]:
         return self.conf["embed_model"].embed(text)
+
+    def _tokenize_for_backfill(self, text: str) -> Set[str]:
+        tokens = re.findall(r"[\w\u4e00-\u9fff]+", text.lower())
+        stopwords = {
+            "the", "and", "or", "of", "in", "to", "a", "an", "is", "are",
+            "what", "which", "how", "when", "where", "why", "does", "do",
+            "中", "的", "了", "和", "与", "有什么", "什么", "区别", "显示",
+        }
+        return {token for token in tokens if token and token not in stopwords}
+
+    def _multimodal_node_text(self, node: Node) -> str:
+        metadata = getattr(node, "metadata", {}) or {}
+        values = [
+            node.text,
+            metadata.get("caption"),
+            metadata.get("ocr"),
+            metadata.get("subfigure_caption"),
+            metadata.get("table_caption"),
+            metadata.get("table_body"),
+            metadata.get("html"),
+        ]
+        return " ".join(str(value) for value in values if value)
+
+    def _reference_boost(self, query: str, node: Node, searchable_text: str) -> float:
+        metadata = getattr(node, "metadata", {}) or {}
+        modality = str(metadata.get("modality") or metadata.get("type") or "").lower()
+        boost = 0.0
+
+        figure_refs = [
+            (match.group(1), (match.group(2) or "").lower())
+            for match in re.finditer(
+                r"\b(?:figure|fig\.?)\s*\.?\s*(\d+)\s*(?:\(([a-z])\))?",
+                query,
+                flags=re.IGNORECASE,
+            )
+        ]
+        if modality in ("image", "chart", "figure"):
+            for figure_no, subfigure in figure_refs:
+                figure_match = re.search(
+                    rf"\b(?:figure|fig\.?)\s*\.?\s*{re.escape(figure_no)}\b",
+                    searchable_text,
+                    flags=re.IGNORECASE,
+                )
+                subfigure_match = not subfigure or str(metadata.get("subfigure", "")).lower() == subfigure
+                if figure_match and subfigure_match:
+                    boost += 4.0
+                    if subfigure:
+                        boost += 2.0
+
+        if modality == "table":
+            for match in re.finditer(r"\btable\s*\.?\s*(\d+)\b", query, flags=re.IGNORECASE):
+                table_no = match.group(1)
+                if re.search(
+                    rf"\btable\s*\.?\s*{re.escape(table_no)}\b",
+                    searchable_text,
+                    flags=re.IGNORECASE,
+                ):
+                    boost += 4.0
+
+        return boost
+
+    def _multimodal_backfill_matches(self, query: str) -> List[int]:
+        query_tokens = self._tokenize_for_backfill(query)
+        if not query_tokens:
+            return []
+
+        scored_nodes = []
+        for node in self.tree.all_nodes.values():
+            metadata = getattr(node, "metadata", {}) or {}
+            modality = str(metadata.get("modality") or metadata.get("type") or "").lower()
+            if modality not in ("image", "chart", "figure", "table"):
+                continue
+
+            searchable_text = self._multimodal_node_text(node)
+            node_tokens = self._tokenize_for_backfill(searchable_text)
+            overlap = len(query_tokens & node_tokens)
+            score = float(overlap) + self._reference_boost(query, node, searchable_text)
+            if score > 0:
+                scored_nodes.append((node.index, score))
+
+        min_score = float(self.conf.get("multimodal_backfill_min_score", 1.0))
+        top_k = int(self.conf.get("multimodal_backfill_top_k", 2))
+        return [
+            node_index
+            for node_index, score in sorted(scored_nodes, key=lambda item: item[1], reverse=True)
+            if score >= min_score
+        ][:top_k]
 
 
     def _tree_retrieve(
@@ -144,6 +232,11 @@ class TreeRetriever:
             layer_nodes, query, self.conf["start_layer"], query_embedding=query_embedding
         )
         retrieved_node_indices = [node.index for node in retrieved_nodes]
+        multimodal_backfill_indices = self._multimodal_backfill_matches(query)
+        if multimodal_backfill_indices:
+            retrieved_node_indices = list(
+                dict.fromkeys(multimodal_backfill_indices + retrieved_node_indices)
+            )
         single_retrieval_time = time.time() - start_time
 
         sparse_start_time = time.time()
@@ -173,6 +266,10 @@ class TreeRetriever:
                                         key=lambda x: x[1], 
                                         reverse=True)[:self.conf["rerank_top_k"]]
             final_node_indices, scores = zip(*final_node_indices)
+            if multimodal_backfill_indices:
+                reranked_scores = dict(zip(final_node_indices, scores))
+                final_node_indices = list(dict.fromkeys(multimodal_backfill_indices + list(final_node_indices)))[:self.conf["rerank_top_k"]]
+                scores = [reranked_scores.get(node_index, 1.0) for node_index in final_node_indices]
             final_nodes = [self.tree.all_nodes[idx] for idx in final_node_indices]
             context = get_text_list(final_nodes)
                 

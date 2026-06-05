@@ -58,6 +58,8 @@ def format_retrieved_multimodal_lines(layer_information):
         caption = metadata.get("caption") or metadata.get("table_caption") or ""
         ocr = metadata.get("ocr") or ""
         table_body = metadata.get("table_body") or ""
+        subfigure = metadata.get("subfigure") or ""
+        subfigure_caption = metadata.get("subfigure_caption") or ""
         source = metadata.get("source") or metadata.get("title") or ""
         page = metadata.get("page", metadata.get("page_idx", ""))
         image = metadata.get("image_path") or metadata.get("image") or ""
@@ -68,6 +70,8 @@ def format_retrieved_multimodal_lines(layer_information):
             f"source={source}" if source else "",
             f"page={page}" if page not in (None, "") else "",
             f"image={image}" if image else "",
+            f"subfigure={subfigure}" if subfigure else "",
+            f"subfigure_caption={subfigure_caption}" if subfigure_caption else "",
             f"caption={caption}" if caption else "",
             f"OCR={ocr}" if ocr else "",
             f"body={table_body}" if table_body else "",
